@@ -16,7 +16,7 @@ Then run experiments on the WOS dataset via:
 And run experiments on the Reuters dataset via:
 
 ```
-  python run.py --gpu 0 --dataset reuters --no_label_name --graphrag --context LLM --LLM llama3 --steiner_tree --edge_weighting tfidf --desc_keywords --shot 1 --online_index all
+  python run.py --gpu 0 --graphrag --context LLM --LLM llama3 --steiner_tree --edge_weighting tfidf --desc_keywords --dataset reuters --no_label_name --shot 1 --online_index all
 ```
 
 --gpu: The GPU number used;
