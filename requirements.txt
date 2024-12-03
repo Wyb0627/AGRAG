@@ -1,0 +1,9 @@
+networkx==3.3
+numpy==1.26.4
+pandas==2.2.2
+scikit-learn==1.5.1
+scipy==1.12.0
+torch==2.1.2
+tqdm==4.66.4
+transformers==4.43.1
+urllib3==2.2.2
