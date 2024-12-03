@@ -35,7 +35,7 @@ print(args)
 # print(os.environ['CUDA_VISIBLE_DEVICES'])
 from huggingface_hub import login
 
-login("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")
+login("YOUR TOKEN HERE")
 from utils import *
 
 check_device()
