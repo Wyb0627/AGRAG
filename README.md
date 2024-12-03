@@ -7,6 +7,8 @@ Install all requirements via:
 pip install -r requirements.txt
 ```
 
+Set your huggingface token at line 38 of the run.py in case any downloading is needed, you can comment out line 38 if LLMs are already downloaded. 
+
 Then run experiments on the WOS dataset via: 
 
 ```
