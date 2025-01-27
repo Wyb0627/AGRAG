@@ -223,46 +223,7 @@ def semantic_entropy_score_only(
     return entropy.cpu().item()
 
 
-def load_wos_taxnomy(round_father_label_dict: dict):
-    round_label_dict = {
-        'n1': [],
-        'n2': [],
-        'n3': [],
-        'n4': [],
-    }
-    with open('../dataset/wos/wos.taxnomy', 'r') as f:
-        lines = f.readlines()
-    lines = [line.split('\t') for line in lines]
-    lines = lines[1:]
-    for line in lines:
-        for round_num, label_list in round_father_label_dict.items():
-            if line[0] in label_list:
-                for sub_label in line[1:]:
-                    if sub_label.lower() == 'electrical generator':
-                        continue
-                    if sub_label.lower() == 'hepatitis c':
-                        sub_label = 'hepatitis'
-                    sub_label = sub_label.replace("'s", '')
-                    sub_label = sub_label.replace('_', ' ')
-                    sub_label = sub_label.replace('-', ' ')
-                    sub_label = re.findall(r'(?u)\b\w\w+\b', sub_label)
-                    sub_label = str(' '.join(sub_label))
-                    round_label_dict[round_num].append(sub_label.lower())
-    return round_label_dict
-
-
-def clean_label(label_str):
-    if label_str.lower() == 'hepatitis c':
-        label_str = 'hepatitis'
-    label_str = label_str.replace("'s", '')
-    label_str = label_str.replace('_', ' ')
-    label_str = label_str.replace('-', ' ')
-    label_str = re.findall(r'(?u)\b\w\w+\b', label_str)
-    label_str = str(' '.join(label_str)).lower()
-    return label_str
-
-
-def load_wos_taxnomy_6_8(split: int):
+def load_wos_taxnomy(split: int):
     skipped_label = ['Electrical generator', 'electrical generator']
     with open('../dataset/wos/wos.taxnomy', 'r') as f:
         lines = f.readlines()
@@ -272,12 +233,30 @@ def load_wos_taxnomy_6_8(split: int):
         'n1': [],
         'n2': [],
         'n3': [],
-        'n4': [],
-        'n5': [],
-        'n6': [],
+        'n4': []
     }
-    if split == 6:
+    if split == 4:
+        for line in lines:
+            if line[0] in ['computer science']:
+                for label in line[1:]:
+                    round_dict['n1'].append(clean_label(label))
+            elif line[0] in ['electrical and computer engineering']:
+                for label in line[1:]:
+                    if label not in skipped_label:
+                        round_dict['n1'].append(clean_label(label))
+            elif line[0] in ['Medical']:
+                for label in line[1:]:
+                    round_dict['n2'].append(clean_label(label))
+            elif line[0] in ['civil engineering', 'Psychology']:
+                for label in line[1:]:
+                    round_dict['n3'].append(clean_label(label))
+            elif line[0] in ['mechanical and aerospace engineering', 'biochemistry']:
+                for label in line[1:]:
+                    round_dict['n4'].append(clean_label(label))
+    elif split == 6:
         # print(lines)
+        round_dict['n5'] = []
+        round_dict['n6'] = []
         for line in lines:
             if line[0] in ['computer science']:
                 for label in line[1:]:
@@ -327,9 +306,21 @@ def load_wos_taxnomy_6_8(split: int):
                 for label in line[1:]:
                     round_dict['n8'].append(clean_label(label))
     else:
-        raise ValueError('split should be 6 or 8')
+        raise ValueError('split should be 4, 6 or 8')
     # print(round_dict)
     return round_dict
+
+
+def clean_label(label_str):
+    if label_str.lower() == 'hepatitis c':
+        label_str = 'hepatitis'
+    label_str = label_str.replace("'s", '')
+    label_str = label_str.replace('_', ' ')
+    label_str = label_str.replace('-', ' ')
+    label_str = re.findall(r'(?u)\b\w\w+\b', label_str)
+    label_str = str(' '.join(label_str)).lower()
+    return label_str
+
 
 
 def return_exp_name(args):

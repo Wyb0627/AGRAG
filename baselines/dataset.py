@@ -35,13 +35,13 @@ class WOS4RoundDataset(Dataset):
                 text_list = line.split('\t')[1:]
                 if label == 'electrical generator':
                     continue
+                if label == 'hepatitis_c' or label == 'hepatitis c':
+                    label = 'hepatitis'
                 label = label.replace("'s", '')
                 label_list = re.findall(r'(?u)\b\w\w+\b', label)
                 cleaned_label = str(' '.join(label_list))
                 cleaned_label = cleaned_label.replace('_', ' ')
                 total_label.append(cleaned_label)
-                if cleaned_label == 'hepatitis c':
-                    cleaned_label = 'hepatitis'
                 total_label_id.append(self.label2id[cleaned_label])
                 total_data.append(' '.join(text_list))
         return total_data, total_label, total_label_id

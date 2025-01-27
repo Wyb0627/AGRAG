@@ -47,6 +47,7 @@ import time
 from GORAG import GORAG
 import tqdm
 from itertools import combinations, chain
+from sklearn.metrics import recall_score, precision_score, f1_score, accuracy_score
 
 print('Starting Time:')
 print(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
@@ -99,6 +100,7 @@ def test(test_loader: DataLoader,
     ans_list = []
     total_res = []
     truth_label = []
+    label_list = []
     bad_case = []
     good_case = []
     NO_KG_MATCHING = 0
@@ -305,7 +307,7 @@ def test(test_loader: DataLoader,
                     inferenced_corpus.append((prompt.lower(), label_name.lower(), prod))
                     break
         if label.lower().strip() == cleaned_res.lower().strip():
-            ans_list.append(1)
+            ans_list.append(label2id[cleaned_res.lower().strip()])
             good_case_dict = {
                 'text': prompt,
                 'prompt': content,
@@ -315,7 +317,10 @@ def test(test_loader: DataLoader,
             }
             good_case.append(good_case_dict)
         else:
-            ans_list.append(0)
+            if cleaned_res.lower().strip() in label2id:
+                ans_list.append(label2id[cleaned_res.lower().strip()])
+            else:
+                ans_list.append(len(label2id))
             bad_case_dict = {
                 'text': prompt,
                 'prompt': content,
@@ -324,12 +329,13 @@ def test(test_loader: DataLoader,
                 'response': cleaned_res,
             }
             bad_case.append(bad_case_dict)
-        label_list.append(label)
+        # label_list.append(label)
+        label_list.append(label2id[label.lower().strip()])
     print(f'No KG matching: {NO_KG_MATCHING}')
     print(f'No path: {NO_PATH}')
     print(f'Fuzzy matched: {FUZZY}')
     print(f'Find category: {FIND_CATEGORY}')
-    return ans_list, total_res, truth_label, bad_case, good_case
+    return ans_list, total_res, truth_label, bad_case, good_case, label_list
 
 
 setup_seed(args.seed)
@@ -389,11 +395,11 @@ elif args.round == 8:
 
 if args.dataset == 'wos':
     if args.round == 6:
-        round_label_dict = load_wos_taxnomy_6_8(6)
+        round_label_dict = load_wos_taxnomy(6)
     elif args.round == 8:
-        round_label_dict = load_wos_taxnomy_6_8(8)
+        round_label_dict = load_wos_taxnomy(8)
     else:
-        round_label_dict = load_wos_taxnomy(round_father_label_dict)
+        round_label_dict = load_wos_taxnomy(4)
 else:
     round_label_dict = {
         'n1': [f'label {i}' for i in range(8)],
@@ -456,7 +462,6 @@ for round_num, data_dict in round_data_dict.items():
                                           f"into one of the following classes, separated by , : {labels}. "
              }
         ]
-    label_list = []
     bad_case = []
     good_case = []
     count = 0
@@ -521,7 +526,7 @@ for round_num, data_dict in round_data_dict.items():
             #     online_idx = True
             # else:
             #     online_idx = False
-            ans_list, total_res, truth_label, bad_case, good_case = test(
+            ans_list, total_res, truth_label, bad_case, good_case, label_list = test(
                 test_loader=current_round_test_data,
                 gorag_model=GORAG,
                 round_num=round_num,
@@ -531,7 +536,14 @@ for round_num, data_dict in round_data_dict.items():
             )
             online_index = False
             end_time = time.time()
-            print(f'The accuracy for {round_num}, {current_round_name} is: ', sum(ans_list) / len(ans_list))
+            acc = accuracy_score(y_true=label_list, y_pred=ans_list)
+            prec = precision_score(y_true=label_list, y_pred=ans_list, average='weighted', zero_division=0)
+            recall = recall_score(y_true=label_list, y_pred=ans_list, average='weighted', zero_division=0)
+            f1 = f1_score(y_true=label_list, y_pred=ans_list, average='weighted', zero_division=0)
+            print(f'The accuracy for {round_num}, {current_round_name} is: ', acc)
+            print(f'The precision for {round_num}, {current_round_name} is: ', prec)
+            print(f'The recall for {round_num}, {current_round_name} is: ', recall)
+            print(f'The F1 for {round_num}, {current_round_name} is: ', f1)
             print(
                 f'The inference time cost for {round_num}, {current_round_name} is: {(end_time - start_time) / 60} mins')
             if not os.path.exists(f'./llama_badcase_{round_num}_{args.round}'):
