@@ -12,7 +12,7 @@ Set your huggingface token at line 38 of the run.py in case any downloading is n
 Then run experiments on the WOS dataset via: 
 
 ```
-  python run.py --gpu 0 --graphrag --context LLM --LLM llama3 --steiner_tree --edge_weighting tfidf --desc_keywords --shot 1 --online_index all --round 1
+  python run.py --gpu 0 --graphrag --context LLM --LLM llama3 --steiner_tree --edge_weighting tfidf --desc_keywords --shot 1 --online_index all --round 4
 ```
 
 And run experiments on the Reuters dataset via:
