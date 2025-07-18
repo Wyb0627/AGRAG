@@ -1,13 +1,32 @@
 # GERAG
 The official code repository of the paper "GERAG: A Graph-based Efficient Retrieval Augmented Generation Framework"
 
+Set your huggingface token at line 38 of the run.py in case any downloading is needed, you can comment out line 38 if LLMs are already downloaded. 
+
+## GraphRAG-bench
+
+To run GraphRAG-bench: 
+
+1. Substitute the run_hipporag2.py of the original [GraphRAG-bench](https://github.com/GraphRAG-Bench/GraphRAG-Benchmark/tree/main) repo with the provided on in /GraphRAG_bench folder.
+2. Download [HippoRAG2](https://github.com/ianliuwd/HippoRAG2/tree/main)'s code, and copy everything in the src folder into the folder where run_hipporag2.py is (We use the HippoRAG package version 2.0.0a3).
+3. Substitute the respective files within the src folder with the provided one in /GraphRAG_bench folder.
+
+Then run GERAG on the novel or medical dataset via: 
+```
+  python run_hipporag2.py --include_passage_nodes --subset novel
+```
+
+To evaluate with VLLM, you may use the generation_eval_vllm.py file provided in the /GraphRAG_bench folder. The usage is the same as generation_eval.py of GraphRAG-bench.
+
+
+## WOS and IFS-REL
+
+
 Install all requirements via:
 
 ```
 pip install -r requirements.txt
 ```
-
-Set your huggingface token at line 38 of the run.py in case any downloading is needed, you can comment out line 38 if LLMs are already downloaded. 
 
 Then run experiments on the WOS dataset via: 
 
