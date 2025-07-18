@@ -57,4 +57,4 @@ And run experiments on the IFS-REL dataset via:
 --online_index: Whether to apply the online indexing mechanism.
 
 
-The code to run on GraphRAG-bench is partially based on [GraphRAG-bench](https://github.com/GraphRAG-Bench/GraphRAG-Benchmark/tree/main) and [HippoRAG2](https://github.com/ianliuwd/HippoRAG2/tree/main)'s GitHub repo.
+### The code to run on GraphRAG-bench is partially based on [GraphRAG-bench](https://github.com/GraphRAG-Bench/GraphRAG-Benchmark/tree/main) and [HippoRAG2](https://github.com/ianliuwd/HippoRAG2/tree/main)'s GitHub repo, huge thanks to their contributions!
