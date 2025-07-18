@@ -1,5 +1,5 @@
-# GORAG
-The official code repository of the paper "Graph-based Retrieval Augmented Generation for Dynamic Few-shot Text Classification"
+# GERAG
+The official code repository of the paper "GERAG: A Graph-based Efficient Retrieval Augmented Generation Framework"
 
 Install all requirements via:
 
@@ -15,7 +15,7 @@ Then run experiments on the WOS dataset via:
   python run.py --gpu 0 --graphrag --context LLM --LLM llama3 --steiner_tree --edge_weighting tfidf --desc_keywords --shot 1 --online_index all --round 4
 ```
 
-And run experiments on the Reuters dataset via:
+And run experiments on the IFS-REL dataset via:
 
 ```
   python run.py --gpu 0 --graphrag --context LLM --LLM llama3 --steiner_tree --edge_weighting tfidf --desc_keywords --dataset reuters --no_label_name --shot 1 --online_index all
@@ -33,7 +33,9 @@ And run experiments on the Reuters dataset via:
 
 --shot: The number of shots;
 
---round: The number of dataset split rounds;
+--round: The number of dataset split rounds set to 4 for full experiment running;
 
 --online_index: Whether to apply the online indexing mechanism.
 
+
+The code to run on GraphRAG-bench is partially based on [GraphRAG-bench](https://github.com/GraphRAG-Bench/GraphRAG-Benchmark/tree/main) and [HippoRAG2](https://github.com/ianliuwd/HippoRAG2/tree/main)'s GitHub repo.
