@@ -2,7 +2,7 @@ import os
 import argparse
 
 #  hipporag2 openai==1.58.1
-parser = argparse.ArgumentParser(description="HippoRAG: Process Corpora and Answer Questions")
+parser = argparse.ArgumentParser()
 
 # Core arguments
 parser.add_argument("--subset", required=True, choices=["medical", "novel"],
@@ -29,7 +29,7 @@ parser.add_argument("--include_passage_nodes", action='store_true')
 # API configuration
 parser.add_argument("--llm_base_url", default="http://localhost:8001/v1",
                     help="Base URL for LLM API")
-parser.add_argument("--llm_api_key", default="8409b8cc59224a4d83632f62c26f1606",
+parser.add_argument("--llm_api_key", default="EMPTY",
                     help="API key for LLM service (can also use OPENAI_API_KEY environment variable)")
 
 args = parser.parse_args()
