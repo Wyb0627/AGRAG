@@ -35,8 +35,8 @@ from .utils.config_utils import BaseConfig
 
 logger = logging.getLogger(__name__)
 
-
 # === 新增：顶层辅助函数，放在类定义之前 ===
+"""
 def _run_graph_retrieval(args):
     hipporag_args, query, link_top_k, query_fact_scores, top_k_facts, top_k_fact_indices = args
     self = hipporag_args['self']
@@ -47,6 +47,7 @@ def _run_dense_passage_retrieval(args):
     hipporag_args, query = args
     self = hipporag_args['self']
     return self.dense_passage_retrieval(query)
+"""
 
 
 def graph_retrieval_worker(
@@ -71,8 +72,6 @@ def graph_retrieval_worker(
         edge_to_relation,
         config
 ):
-    import networkx as nx
-    import numpy as np
     nx_graph = nx.node_link_graph(nx_graph_data, edges="links")
     nx.set_node_attributes(nx_graph, pagerank_dict, 'pagerank')
     query_emb = query_to_embedding['triple'][query]
@@ -197,7 +196,8 @@ def graph_retrieval_worker(
             score = nx_graph.nodes[nei].get('pagerank', 0)
             min_cost = min([nx_graph[n][nei]['weight'] for n in subgraph_nodes if nx_graph.has_edge(n, nei)])
             ratio = score / min_cost if min_cost > 0 else float('inf')
-            if ratio > best_ratio or (ratio == best_ratio and (score > best_score or (score == best_score and min_cost < best_cost))):
+            if ratio > best_ratio or (
+                    ratio == best_ratio and (score > best_score or (score == best_score and min_cost < best_cost))):
                 best_ratio = ratio
                 best_score = score
                 best_cost = min_cost
@@ -307,7 +307,13 @@ class HippoRAG:
         logger.debug(f"HippoRAG init with config:\n  {_print_config}\n")
 
         # LLM and embedding model specific working directories are created under every specified saving directories
-        llm_label = self.global_config.llm_name.replace("/", "_")
+
+        # if '7B-Instruct' in llm_label:
+        #    llm_label = llm_label.replace('7B', '14B')
+        if 'Qwen-2.5-7B-Base-RAG-RL'.lower() in self.global_config.llm_name.lower():
+            llm_label = 'Qwen_Qwen2.5-14B-Instruct'
+        else:
+            llm_label = self.global_config.llm_name.replace("/", "_")
         embedding_label = self.global_config.embedding_model_name.replace("/", "_")
         self.working_dir = os.path.join(self.global_config.save_dir, f"{llm_label}_{embedding_label}")
 
@@ -342,9 +348,12 @@ class HippoRAG:
 
         self.prompt_template_manager = PromptTemplateManager(
             role_mapping={"system": "system", "user": "user", "assistant": "assistant"})
-
-        self.openie_results_path = os.path.join(self.global_config.save_dir,
-                                                f'openie_results_ner_{self.global_config.llm_name.replace("/", "_")}.json')
+        if 'Qwen-2.5-7B-Base-RAG-RL'.lower() in self.global_config.llm_name.lower():
+            self.openie_results_path = os.path.join(self.global_config.save_dir,
+                                                    f'openie_results_ner_Qwen_Qwen2.5-14B-Instruct.json')
+        else:
+            self.openie_results_path = os.path.join(self.global_config.save_dir,
+                                                    f'openie_results_ner_{self.global_config.llm_name.replace("/", "_")}.json')
 
         self.rerank_filter = DSPyFilter(self)
         self.edge_to_relation = {}
@@ -430,11 +439,12 @@ class HippoRAG:
         if len(chunk_keys_to_process) > 0:
             # 传递 HippoRAG 实例用于 token 统计
             self.openie.hipporag_ref = self
-            # if self.global_config.rag_mode == 'gorag':
-            #     new_ner_results_dict, new_triple_results_dict = self.openie.batch_openie_tfidf(new_openie_rows,
-            #                                                                                  tfidf_threshold=0.1)
-            # else:
-            new_ner_results_dict, new_triple_results_dict = self.openie.batch_openie(new_openie_rows)
+            if self.global_config.rag_mode == 'gorag':
+                new_ner_results_dict, new_triple_results_dict = self.openie.batch_openie_tfidf(new_openie_rows,
+                                                                                               max_ngram_length=self.global_config.max_ngram_length,
+                                                                                               tfidf_threshold=self.global_config.ner_threshold)
+            else:
+                new_ner_results_dict, new_triple_results_dict = self.openie.batch_openie(new_openie_rows)
             self.merge_openie_results(all_openie_info, new_openie_rows, new_ner_results_dict, new_triple_results_dict)
 
         if self.global_config.save_openie:
@@ -873,9 +883,14 @@ class HippoRAG:
         for query_solution_idx, query_solution in tqdm(enumerate(queries), desc="Extraction Answers from LLM Response"):
             response_content = all_response_message[query_solution_idx]
             try:
-                pred_ans = response_content.split('Answer:')[1].strip()
+                answer = response_content.split('Answer:')
+                if len(answer) > 1:
+                    pred_ans = answer[1].strip()
+                else:
+                    pred_ans = answer[0].strip()
             except Exception as e:
-                logger.warning(f"Error in parsing the answer from the raw LLM QA inference response: {str(e)}!")
+                logger.warning(f"Error in parsing the answer from the raw LLM QA inference response: {str(e)}!\n"
+                               f"LLM response:{response_content}")
                 pred_ans = response_content
 
             query_solution.answer = pred_ans
@@ -1134,8 +1149,12 @@ class HippoRAG:
         num_phrases = sum([len(chunk['extracted_entities']) for chunk in all_openie_info])
 
         if len(all_openie_info) > 0:
-            openie_dict = {'docs': all_openie_info, 'avg_ent_chars': round(sum_phrase_chars / num_phrases, 4),
-                           'avg_ent_words': round(sum_phrase_words / num_phrases, 4)}
+            try:
+                openie_dict = {'docs': all_openie_info, 'avg_ent_chars': round(sum_phrase_chars / num_phrases, 4),
+                               'avg_ent_words': round(sum_phrase_words / num_phrases, 4)}
+            except ZeroDivisionError:
+                openie_dict = {'docs': all_openie_info, 'avg_ent_chars': 0.0, 'avg_ent_words': 0.0}
+
             with open(self.openie_results_path, 'w') as f:
                 json.dump(openie_dict, f)
             logger.info(f"OpenIE results saved to {self.openie_results_path}")
@@ -1419,6 +1438,20 @@ class HippoRAG:
         query_doc_scores = np.dot(self.passage_embeddings, query_embedding.T)
         query_doc_scores = np.squeeze(query_doc_scores) if query_doc_scores.ndim == 2 else query_doc_scores
         query_doc_scores = min_max_normalize(query_doc_scores)
+
+        if self.global_config.retrieval_mode == 'hybrid':
+            # Perform BM25 retrieval for ALL documents
+            bm25_scores = self.chunk_embedding_store.bm25_retrieve_all(query)
+
+            if len(bm25_scores) > 0 and np.max(bm25_scores) > 0:
+                # Normalize BM25 scores
+                bm25_scores = min_max_normalize(bm25_scores)
+
+                # Combine dense and sparse scores (average)
+                # Both query_doc_scores and bm25_scores have the same length and order
+                hybrid_scores = (query_doc_scores + bm25_scores) / 2.0
+
+                query_doc_scores = hybrid_scores
 
         sorted_doc_ids = np.argsort(query_doc_scores)[::-1]
         sorted_doc_scores = query_doc_scores[sorted_doc_ids.tolist()]
