@@ -24,7 +24,7 @@ To evaluate with VLLM, you may use the generation_eval_vllm.py file provided in 
 Install all requirements via:
 
 ```
-pip install -r requirements.txt
+  pip install -r requirements.txt
 ```
 
 Then run experiments on the WOS dataset via: 
