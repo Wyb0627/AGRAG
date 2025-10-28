@@ -48,7 +48,7 @@ And run experiments on the IFS-REL dataset via:
 
 --retrieval_mode: Whether to apply dense or hybrid retrieval;
 
---ner_threshold: The entity extraction threshole;
+--ner_threshold: The entity extraction threshold;
 
 --max_ngram_length: The maximum n-gram considered when entity extraction;
 
