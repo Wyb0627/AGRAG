@@ -15,10 +15,13 @@ parser.add_argument("--model_name", default="Qwen/Qwen2.5-14B-Instruct",
                     help="LLM model identifier")
 parser.add_argument("--embed_model_name", default="facebook/contriever", help="Path to embedding model directory")
 # parser.add_argument("--embed_model_name", default="GritLM/GritLM-7B",help="Path to embedding model directory")
+parser.add_argument("--retrieval_mode", type=str, default='dense')
 
 parser.add_argument("--sample", type=int, default=None,
                     help="Number of questions to sample per corpus")
 parser.add_argument("--rag_mode", type=str, default='gorag')
+parser.add_argument("--ner_threshold", type=float, default=0.1)
+parser.add_argument("--max_ngram_length", type=int, default=3)
 parser.add_argument("--graph_summary", action='store_true')
 parser.add_argument("--linking_top_k", type=int, default=5,
                     help="The top k fact selected for linking")
@@ -26,14 +29,21 @@ parser.add_argument("--include_passage_nodes", action='store_true')
 # API configuration
 parser.add_argument("--llm_base_url", default="http://localhost:8001/v1",
                     help="Base URL for LLM API")
-parser.add_argument("--llm_api_key", default="",
+parser.add_argument("--llm_api_key", default="8409b8cc59224a4d83632f62c26f1606",
                     help="API key for LLM service (can also use OPENAI_API_KEY environment variable)")
 
 args = parser.parse_args()
-args.base_dir = f'{args.subset}_{args.rag_mode}_workspace_LLMNER'
+args.base_dir = f'{args.subset}_{args.rag_mode}_{args.retrieval_mode}_workspace'
+if 'gpt' or 'Qwen-2.5-7B-base-RAG-RL'.lower() in args.model_name.lower():
+    args.base_dir += f'_{args.model_name.replace("/", "_")}'
+if args.ner_threshold != 0.1:
+    args.base_dir += f'_ner={args.ner_threshold}'
+if args.max_ngram_length != 3:
+    args.base_dir += f'_ngram={args.max_ngram_length}'
 # Set CUDA device
 os.environ["CUDA_VISIBLE_DEVICES"] = args.gpus
-
+print('Base dir:')
+print(args.base_dir)
 import json
 import logging
 from typing import Dict, List
@@ -133,13 +143,17 @@ def process_corpus(
         llm_base_url: str,
         llm_api_key: str,
         questions: List[dict],
-        sample: int
+        sample: int,
+        subset:str
 ):
     """Process a single corpus: index it and answer its questions"""
     logging.info(f"📚 Processing corpus: {corpus_name}")
 
     # Prepare output directory
     output_dir = f"./results/{base_dir}{'_passage_node' if args.include_passage_nodes else ''}/{corpus_name}"
+    if '7B' in model_name and 'Qwen-2.5-7B-base-RAG-RL' not in model_name.lower():
+        output_dir = output_dir.replace('workspace', 'workspace_7B')
+
     os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, f"predictions_{corpus_name}.json")
     # if not os.path.exists(base_dir):
@@ -174,15 +188,21 @@ def process_corpus(
     # Prepare queries and gold answers
     all_queries = [q["question"] for q in corpus_questions]
     gold_answers = [[q['answer']] for q in corpus_questions]
-
+    if 'Qwen-2.5-7B-base-RAG-RL'.lower() in model_name.lower():
+        if args.rag_mode == 'gorag':
+            save_dir = f'./{subset}_gorag_hybrid_workspace_contriever/{corpus_name}'
+        else:
+            save_dir = f'./{subset}_hipporag2_workspace_contriever/{corpus_name}'
+    else:
+        save_dir = os.path.join(base_dir, corpus_name)
     # Configure HippoRAG
     config = BaseConfig(
-        save_dir=os.path.join(base_dir, corpus_name),
+        save_dir=save_dir,
         llm_base_url=llm_base_url,
         llm_name=model_name,
         embedding_model_name=embed_model_name,
-        force_index_from_scratch=True,
-        force_openie_from_scratch=True,
+        force_index_from_scratch=False,
+        force_openie_from_scratch=False,
         graph_summary=args.graph_summary,
         rerank_dspy_file_path="src/hipporag/prompts/dspy_prompts/filter_llama3.3-70B-Instruct.json",
         retrieval_top_k=200,
@@ -195,7 +215,10 @@ def process_corpus(
         corpus_len=len(docs),
         openie_mode="online",
         rag_mode=args.rag_mode,
-        include_passage_nodes_in_qa_input=args.include_passage_nodes
+        include_passage_nodes_in_qa_input=args.include_passage_nodes,
+        retrieval_mode=args.retrieval_mode,
+        ner_threshold=args.ner_threshold,
+        max_ngram_length=args.max_ngram_length,
     )
 
     # Initialize HippoRAG
@@ -302,6 +325,10 @@ def main():
     for item in corpus_data:
         corpus_name = item["corpus_name"]
         context = item["context"]
+        output_dir = f"./results/{args.base_dir}_{embeder_name}{'_passage_node' if args.include_passage_nodes else ''}/{corpus_name}"
+        if os.path.exists(f'{output_dir}/predictions_{corpus_name}.json'):
+            print(f'Skipping {corpus_name} as results already exist.')
+            continue
         summary, index_time, qa_time = process_corpus(
             corpus_name=corpus_name,
             context=context,
@@ -311,7 +338,8 @@ def main():
             llm_base_url=args.llm_base_url,
             llm_api_key=api_key,
             questions=grouped_questions,
-            sample=args.sample
+            sample=args.sample,
+            subset=args.subset,
         )
         merge_token_usage(global_token_usage, summary)
         global_index_time += index_time
