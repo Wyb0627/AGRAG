@@ -139,13 +139,6 @@ def process_corpus(
             embedding_service=HuggingFaceEmbeddingService(
                 model='BAAI/bge-large-en-v1.5'
             ),
-            # embedding_service=OpenAIEmbeddingService(
-            #    client='azure',
-            #    api_version='2025-02-01-preview',
-            #    model='text-embedding-3-small',
-            #    api_key='8409b8cc59224a4d83632f62c26f1606',
-            #    base_url='https://hkust.azure-api.net'
-            # )
         ),
     )
 
