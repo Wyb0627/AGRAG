@@ -1,5 +1,5 @@
 # AGRAG
-The official code repository of the paper "AGRAG: Advanced Graph-based Retrieval-Augmented Generation for LLMs"
+The official code repository of ICDE 26 paper "AGRAG: Advanced Graph-based Retrieval-Augmented Generation for LLMs"
 
 ## GraphRAG-bench
 
